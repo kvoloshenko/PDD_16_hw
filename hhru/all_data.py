@@ -3,6 +3,9 @@ import pprint
 import requests
 import re
 
+DOMAIN = 'https://api.hh.ru/'
+url_vacancies = f'{DOMAIN}vacancies'
+page = 1
 
 def data_save_json(data, file):
     with open(file, 'w', encoding='utf8') as f:
@@ -99,7 +102,7 @@ def parser(keywords, s_requirement):
         if int(item[1]) > 0:  # Не включаем низкочастотные слова
             i_dic['name'] = item[0]
             i_dic['count'] = item[1]
-            i_dic['persent'] = int(item[1]) / total_words * 100
+            i_dic['persent'] = round(int(item[1]) / total_words * 100)
             requirements.append(i_dic)
             # print(i_dic)
 
@@ -108,29 +111,50 @@ def parser(keywords, s_requirement):
     all_data['requirements'] = requirements
     return all_data
 
-DOMAIN = 'https://api.hh.ru/'
-url_vacancies = f'{DOMAIN}vacancies'
-page = 1
-
 # keywords = 'NAME:(Python) and (AI OR ML OR Keras OR Numpy OR Pandas)'
-keywords_l = ['NAME:(Python) and (AI OR ML)',
-              'NAME:(Python OR Java) AND COMPANY_NAME:(1 OR 2 OR YANDEX) AND (DJANGO OR SPRING)',
-              'NAME:(Python)']
-rez_data = []
-i = 1
-iteration = 1
-for keywords in keywords_l:
-    params = get_params(keywords, page)
-    s_requirement = get_requirement_str(url_vacancies, params, iteration)
-    iteration+=1
-    s_requirement = str_cliner(s_requirement)
-    file_name=f'requirements_{i}.txt'
-    data_save_txt(s_requirement, file_name)
-    data = parser(keywords, s_requirement)
-    rez_data.append(data)
-    i+=1
+# keywords_l = ['NAME:(Python) and (AI OR ML)',
+#               'NAME:(Python OR Java) AND COMPANY_NAME:(1 OR 2 OR YANDEX) AND (DJANGO OR SPRING)',
+#               'NAME:(Python)']
 
-data_save_json(rez_data, 'hhru_rezult.json')
+def set_keywords(keywords):
+    keywords_l = []
+    keywords_l.append(keywords)
+    return keywords_l
+
+def get_data(keywords):
+    rez_data = []
+    keywords_l = set_keywords(keywords)
+    i = 1
+    iteration = 1
+    for keywords in keywords_l:
+        params = get_params(keywords, page)
+        s_requirement = get_requirement_str(url_vacancies, params, iteration)
+        iteration+=1
+        s_requirement = str_cliner(s_requirement)
+        file_name=f'requirements_{i}.txt'
+        data_save_txt(s_requirement, file_name)
+        data = parser(keywords, s_requirement)
+        rez_data.append(data)
+        i+=1
+
+    # pprint.pprint(rez_data)
+
+    data_save_json(rez_data, 'hhru_rezult.json')
+    return rez_data
+
+
+if __name__ == '__main__':
+    # set_keywords('NAME:(Python)')
+    result = get_data('NAME:(Python)')
+    # print(type(result))
+    # print(type(result[0]['requirements']))
+    # pprint.pprint(result)
+    keywords = result[0]['keywords']
+    print(f'{keywords}')
+    requirements_l = result[0]['requirements']
+    for item in requirements_l:
+        # print(f'item={item}')
+        print(f'{item["name"]} {item["count"]} {round(int(item["persent"]))}')
 
 
 
